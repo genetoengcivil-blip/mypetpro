@@ -1,137 +1,111 @@
 'use client';
 
-import React, { useState } from 'react';
-import { PawPrint, Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  ArrowRight
+} from 'lucide-react';
+import Link from 'next/link';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [cpf, setCpf] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // Função para aplicar máscara de CPF em tempo real (000.000.000-00)
-  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não for número
-    if (value.length > 11) value = value.slice(0, 11);
-    
-    value = value.replace(/(\d{3})(\d)/, '$1.$2');
-    value = value.replace(/(\d{3})(\d)/, '$1.$2');
-    value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-    
-    setCpf(value);
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    // O CPF limpo (apenas números) costuma ser o melhor padrão para usar como senha no DB
-    const cleanCpf = cpf.replace(/\D/g, '');
-
-    try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: cleanCpf,
-      });
-
-      if (authError) {
-        throw new Error('Credenciais inválidas. Verifique seu e-mail e CPF.');
-      }
-
-      if (data.user) {
-        // Redireciona para o dashboard/CRM após o login com sucesso
-        router.push('/dashboard');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Ocorreu um erro ao tentar fazer login.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <PawPrint className="h-12 w-12 text-blue-600" />
-        </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Acesse o MyPetPro
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-900 font-medium">
-          Utilize o e-mail e o CPF cadastrados na sua assinatura
-        </p>
+    <div className="min-h-screen bg-[#020617] font-sans selection:bg-red-500 selection:text-white flex items-center justify-center p-6 overflow-hidden">
+      
+      {/* BACKGROUND CINEMATOGRÁFICO */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-10"></div>
+        {mounted && (
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline 
+            className="w-full h-full object-cover grayscale opacity-30"
+          >
+            <source src="/hero-video.mp4" type="video/mp4" />
+          </video>
+        )}
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-lg sm:rounded-xl sm:px-10 border border-gray-300">
-          <form className="space-y-6" onSubmit={handleLogin}>
-            {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-                <p className="text-sm font-bold text-red-700">{error}</p>
-              </div>
-            )}
+      {/* CARD DE LOGIN (GLASSMORPHISM) */}
+      <div className="relative z-20 w-full max-w-[500px]">
+        <div className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3.5rem] p-10 md:p-16 shadow-2xl">
+          
+          {/* LOGO GIGANTE DENTRO DO CARD */}
+          <div className="flex justify-center mb-12">
+            <img src="/logo.png" alt="MyPetPro" className="h-48 md:h-64 w-auto object-contain" />
+          </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-extrabold text-black mb-1">
-                E-mail
-              </label>
-              <div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 bg-white border-2 border-gray-600 text-black font-bold text-lg rounded-md shadow-sm placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-colors"
+          <div className="text-center mb-10">
+            <h1 className="text-3xl font-black uppercase italic tracking-tighter text-white mb-2 leading-none">Seja Bem Vindo!</h1>
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">Acesse sua conta</p>
+          </div>
+
+          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+            {/* EMAIL */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-4">Email</label>
+              <div className="relative group">
+                <Mail className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-600 group-focus-within:text-red-600 transition-colors" />
+                <input 
+                  type="email" 
                   placeholder="seu@email.com"
+                  className="w-full bg-white/5 border border-white/10 rounded-3xl py-5 pl-16 pr-6 text-white placeholder:text-slate-700 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all font-medium"
                 />
               </div>
             </div>
 
-            <div>
-              <label htmlFor="cpf" className="block text-sm font-extrabold text-black mb-1">
-                CPF (Seu primeiro acesso)
-              </label>
-              <div>
-                <input
-                  id="cpf"
-                  name="cpf"
-                  type="text"
-                  required
-                  value={cpf}
-                  onChange={handleCpfChange}
-                  className="appearance-none block w-full px-4 py-3 bg-white border-2 border-gray-600 text-black font-bold text-lg rounded-md shadow-sm placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-colors"
-                  placeholder="000.000.000-00"
+            {/* SENHA */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center px-4">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Senha</label>
+                <a href="#" className="text-[9px] font-black uppercase tracking-widest text-red-600 hover:text-white transition-colors">Esqueceu?</a>
+              </div>
+              <div className="relative group">
+                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-600 group-focus-within:text-red-600 transition-colors" />
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="••••••••"
+                  className="w-full bg-white/5 border border-white/10 rounded-3xl py-5 pl-16 pr-14 text-white placeholder:text-slate-700 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all font-medium"
                 />
+                <button 
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
             </div>
 
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed transition"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="animate-spin -ml-1 mr-2 h-6 w-6 text-white" />
-                    Autenticando...
-                  </>
-                ) : (
-                  'Entrar'
-                )}
-              </button>
-            </div>
+            {/* BOTÃO ENTRAR */}
+            <button className="w-full bg-red-600 hover:bg-white text-white hover:text-red-600 py-6 rounded-3xl font-black uppercase tracking-widest text-sm transition-all shadow-xl shadow-red-600/20 active:scale-95 flex items-center justify-center gap-3 mt-10 group">
+              Entrar na Conta <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            </button>
           </form>
+
+          {/* SIGN UP LINK */}
+          <p className="text-center mt-12 text-slate-600 text-[10px] font-black uppercase tracking-widest">
+            Ainda não é cliente? <Link href="/#planos" className="text-red-600 hover:text-white transition-colors ml-1">Assinar Agora</Link>
+          </p>
+
         </div>
       </div>
+
+      {/* DECORAÇÃO FUNDO */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-red-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none"></div>
+
     </div>
   );
 }

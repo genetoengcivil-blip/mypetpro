@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle2, PawPrint } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LandingPage() {
   return (
@@ -10,9 +11,9 @@ export default function LandingPage() {
           <PawPrint className="h-8 w-8 text-blue-600" />
           <span className="text-2xl font-bold text-gray-900">MyPetPro</span>
         </div>
-        <button className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition">
+        <Link href="/login" className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition">
           Acessar minha conta
-        </button>
+        </Link>
       </header>
 
       {/* Hero Section */}
@@ -45,7 +46,10 @@ export default function LandingPage() {
               <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 text-green-500" /> <span>Controle de vacinas e remédios</span></li>
               <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 text-green-500" /> <span>Galeria de fotos</span></li>
             </ul>
-            <a href="#" className="mt-8 block w-full bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold py-3 px-4 rounded-lg text-center transition">
+            <a 
+              href="https://checkout.nexano.com.br/checkout/cmobv7nty0f6o1yqmyfvn59kb?offer=TBYYZTV" 
+              className="mt-8 block w-full bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold py-3 px-4 rounded-lg text-center transition"
+            >
               Assinar Mensal
             </a>
           </div>
@@ -67,7 +71,10 @@ export default function LandingPage() {
               <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 text-green-500" /> <span>Economia de quase R$ 20</span></li>
               <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 text-green-500" /> <span>Suporte prioritário</span></li>
             </ul>
-            <a href="#" className="mt-8 block w-full bg-blue-600 text-white hover:bg-blue-700 font-semibold py-3 px-4 rounded-lg text-center shadow-md transition">
+            <a 
+              href="https://checkout.nexano.com.br/checkout/cmobv7nty0f6o1yqmyfvn59kb?offer=7LTZ5V5" 
+              className="mt-8 block w-full bg-blue-600 text-white hover:bg-blue-700 font-semibold py-3 px-4 rounded-lg text-center shadow-md transition"
+            >
               Assinar Semestral
             </a>
           </div>
@@ -84,7 +91,10 @@ export default function LandingPage() {
               <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 text-green-500" /> <span>2 meses grátis</span></li>
               <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 text-green-500" /> <span>Acesso a novas features antecipado</span></li>
             </ul>
-            <a href="#" className="mt-8 block w-full bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold py-3 px-4 rounded-lg text-center transition">
+            <a 
+              href="https://checkout.nexano.com.br/checkout/cmobv7nty0f6o1yqmyfvn59kb?offer=4JQ030Q" 
+              className="mt-8 block w-full bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold py-3 px-4 rounded-lg text-center transition"
+            >
               Assinar Anual
             </a>
           </div>

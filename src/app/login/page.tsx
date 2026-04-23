@@ -62,22 +62,22 @@ export default function LoginPage() {
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Acesse o MyPetPro
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-sm text-gray-900 font-medium">
           Utilize o e-mail e o CPF cadastrados na sua assinatura
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-lg sm:rounded-xl sm:px-10 border border-gray-200">
+        <div className="bg-white py-8 px-4 shadow-lg sm:rounded-xl sm:px-10 border border-gray-300">
           <form className="space-y-6" onSubmit={handleLogin}>
             {error && (
               <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-                <p className="text-sm font-medium text-red-700">{error}</p>
+                <p className="text-sm font-bold text-red-700">{error}</p>
               </div>
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-bold text-gray-900 mb-1">
+              <label htmlFor="email" className="block text-sm font-extrabold text-black mb-1">
                 E-mail
               </label>
               <div>
@@ -89,14 +89,14 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 border border-gray-500 text-black font-medium rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-base transition-colors"
+                  className="appearance-none block w-full px-4 py-3 bg-white border-2 border-gray-600 text-black font-bold text-lg rounded-md shadow-sm placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-colors"
                   placeholder="seu@email.com"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="cpf" className="block text-sm font-bold text-gray-900 mb-1">
+              <label htmlFor="cpf" className="block text-sm font-extrabold text-black mb-1">
                 CPF (Seu primeiro acesso)
               </label>
               <div>
@@ -107,7 +107,7 @@ export default function LoginPage() {
                   required
                   value={cpf}
                   onChange={handleCpfChange}
-                  className="appearance-none block w-full px-4 py-3 border border-gray-500 text-black font-medium rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-base transition-colors"
+                  className="appearance-none block w-full px-4 py-3 bg-white border-2 border-gray-600 text-black font-bold text-lg rounded-md shadow-sm placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-colors"
                   placeholder="000.000.000-00"
                 />
               </div>
@@ -117,11 +117,11 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed transition"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed transition"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" />
+                    <Loader2 className="animate-spin -ml-1 mr-2 h-6 w-6 text-white" />
                     Autenticando...
                   </>
                 ) : (

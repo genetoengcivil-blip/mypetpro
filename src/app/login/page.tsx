@@ -12,10 +12,19 @@ import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
-// --- INICIALIZAÇÃO DO SUPABASE ---
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
+// --- INICIALIZAÇÃO DO SUPABASE COM VERIFICAÇÃO ---
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// Log para debug no console do navegador
+console.log('Supabase URL:', supabaseUrl ? 'OK' : 'MISSING');
+console.log('Supabase Key:', supabaseKey ? 'OK' : 'MISSING');
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('ERRO: Variáveis de ambiente do Supabase não configuradas!');
+}
+
+const supabase = createClient(supabaseUrl || '', supabaseKey || '');
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -31,11 +40,26 @@ export default function LoginPage() {
     
     // Verificar se já existe uma sessão ativa
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        router.push('/dashboard');
+      try {
+        console.log('Verificando sessão existente...');
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Erro ao verificar sessão:', sessionError);
+          return;
+        }
+        
+        if (session) {
+          console.log('Sessão encontrada, redirecionando...');
+          router.push('/dashboard');
+        } else {
+          console.log('Nenhuma sessão ativa');
+        }
+      } catch (err) {
+        console.error('Erro inesperado ao verificar sessão:', err);
       }
     };
+    
     checkSession();
   }, [router]);
 
@@ -43,6 +67,13 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+
+    // Verificar se as variáveis estão configuradas
+    if (!supabaseUrl || !supabaseKey) {
+      setError('Erro de configuração: Supabase não configurado. Contate o suporte.');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       // Validação básica
@@ -52,50 +83,61 @@ export default function LoginPage() {
         return;
       }
 
+      console.log('Tentando login para:', email);
+
       // Tentativa de login no Supabase
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: email,
+        email: email.trim(),
         password: password,
       });
 
       if (signInError) {
-        console.error('Erro de login:', signInError);
+        console.error('Erro de login detalhado:', {
+          message: signInError.message,
+          status: signInError.status,
+          name: signInError.name
+        });
         
         // Mensagens amigáveis para erros comuns
         if (signInError.message === 'Invalid login credentials') {
           setError('Email ou senha incorretos');
         } else if (signInError.message.includes('Email not confirmed')) {
           setError('Por favor, confirme seu email antes de fazer login');
+        } else if (signInError.message.includes('Invalid email')) {
+          setError('Email inválido');
         } else {
-          setError('Erro ao fazer login. Tente novamente.');
+          setError(`Erro: ${signInError.message}`);
         }
         setIsLoading(false);
         return;
       }
+
+      console.log('Login bem-sucedido!', data?.user?.id);
 
       // Login bem-sucedido
       if (data?.session && data?.user) {
         const userId = data.user.id;
         
         try {
-          // Buscar perfil do tutor usando user_id (não id)
-          const { data: tutorData, error: tutorError } = await supabase
+          // Buscar ou criar perfil do tutor
+          console.log('Buscando perfil do usuário...');
+          
+          let { data: tutorData, error: tutorError } = await supabase
             .from('tutores')
             .select('*')
             .eq('user_id', userId)
-            .maybeSingle(); // Usar maybeSingle em vez de single para evitar erro se não existir
+            .maybeSingle();
           
           if (tutorError) {
             console.error('Erro ao buscar tutor:', tutorError);
           }
           
-          if (tutorData) {
-            // Perfil encontrado
-            localStorage.setItem('nexus_tutor_profile', JSON.stringify(tutorData));
-            console.log('Perfil carregado:', tutorData);
-          } else {
-            // Perfil não existe - criar um novo
-            const defaultTutor = {
+          if (!tutorData) {
+            console.log('Perfil não encontrado, criando novo...');
+            
+            // Criar perfil
+            const newTutor = {
+              user_id: userId,
               name: data.user.email?.split('@')[0] || 'Usuário',
               email: data.user.email,
               phone: '',
@@ -103,110 +145,55 @@ export default function LoginPage() {
               photo: ''
             };
             
-            // Tentar inserir no banco de dados
-            const { data: newTutor, error: insertError } = await supabase
+            const { data: inserted, error: insertError } = await supabase
               .from('tutores')
-              .insert([
-                { 
-                  user_id: userId,
-                  name: defaultTutor.name, 
-                  email: defaultTutor.email,
-                  plan: defaultTutor.plan,
-                  phone: '',
-                  photo: ''
-                }
-              ])
+              .insert([newTutor])
               .select()
               .maybeSingle();
             
             if (insertError) {
               console.error('Erro ao criar perfil:', insertError);
-              // Mesmo com erro, salvar no localStorage
-              localStorage.setItem('nexus_tutor_profile', JSON.stringify(defaultTutor));
-            } else if (newTutor) {
+              // Salvar no localStorage mesmo assim
               localStorage.setItem('nexus_tutor_profile', JSON.stringify(newTutor));
-            } else {
-              localStorage.setItem('nexus_tutor_profile', JSON.stringify(defaultTutor));
+            } else if (inserted) {
+              console.log('Perfil criado com sucesso');
+              localStorage.setItem('nexus_tutor_profile', JSON.stringify(inserted));
             }
+          } else {
+            console.log('Perfil encontrado');
+            localStorage.setItem('nexus_tutor_profile', JSON.stringify(tutorData));
           }
         } catch (profileError) {
           console.error('Erro ao processar perfil:', profileError);
-          // Fallback: criar perfil temporário no localStorage
-          const fallbackTutor = {
-            name: data.user.email?.split('@')[0] || 'Usuário',
-            email: data.user.email,
-            phone: '',
-            plan: 'Enterprise Elite',
-            photo: ''
-          };
-          localStorage.setItem('nexus_tutor_profile', JSON.stringify(fallbackTutor));
         }
         
-        // Redirecionar para o dashboard
+        console.log('Redirecionando para dashboard...');
         router.push('/dashboard');
       }
     } catch (err) {
-      console.error('Erro inesperado:', err);
-      setError('Erro de conexão. Verifique sua internet.');
+      console.error('Erro inesperado no login:', err);
+      setError('Erro de conexão. Verifique sua internet e tente novamente.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Função para criar conta demo (cadastro + login)
-  const handleCreateDemoAccount = async () => {
+  // Função para testar conexão com Supabase
+  const testConnection = async () => {
     setIsLoading(true);
-    setError('');
-    
     try {
-      const demoEmail = `demo_${Date.now()}@mypetpro.com`;
-      const demoPassword = 'demo123456';
-      
-      // Tentar criar usuário
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: demoEmail,
-        password: demoPassword,
-        options: {
-          data: {
-            name: 'Usuário Demo'
-          }
-        }
-      });
-      
-      if (signUpError) {
-        console.error('Erro ao criar conta demo:', signUpError);
-        setError('Erro ao criar conta demo. Tente novamente.');
-        setIsLoading(false);
-        return;
-      }
-      
-      if (signUpData?.user) {
-        // Fazer login automaticamente
-        setEmail(demoEmail);
-        setPassword(demoPassword);
-        
-        // Aguardar um pouco para o trigger criar o perfil
-        setTimeout(async () => {
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: demoEmail,
-            password: demoPassword,
-          });
-          
-          if (signInError) {
-            setError('Conta criada, mas erro ao fazer login. Tente manualmente.');
-            setEmail(demoEmail);
-            setPassword('');
-          } else {
-            router.push('/dashboard');
-          }
-          setIsLoading(false);
-        }, 2000);
+      const { data, error } = await supabase.from('tutores').select('count');
+      if (error) {
+        console.error('Erro de conexão:', error);
+        alert(`Erro de conexão: ${error.message}`);
+      } else {
+        alert('Conexão com Supabase OK!');
       }
     } catch (err) {
       console.error('Erro:', err);
-      setError('Erro ao criar conta demo.');
-      setIsLoading(false);
+      alert('Erro ao conectar com Supabase');
     }
+    setIsLoading(false);
   };
 
   return (
@@ -228,11 +215,11 @@ export default function LoginPage() {
         )}
       </div>
 
-      {/* CARD DE LOGIN (GLASSMORPHISM) */}
+      {/* CARD DE LOGIN */}
       <div className="relative z-20 w-full max-w-[500px]">
         <div className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3.5rem] p-10 md:p-16 shadow-2xl">
           
-          {/* LOGO GIGANTE DENTRO DO CARD */}
+          {/* LOGO */}
           <div className="flex justify-center mb-12">
             <img src="/logo.png" alt="MyPetPro" className="h-48 md:h-64 w-auto object-contain" />
           </div>
@@ -308,7 +295,15 @@ export default function LoginPage() {
             </button>
           </form>
 
-          
+          {/* Botão Testar Conexão (apenas para debug) */}
+          <button 
+            onClick={testConnection}
+            type="button"
+            className="w-full mt-4 bg-yellow-600/20 hover:bg-yellow-600 text-yellow-500 hover:text-white py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors"
+          >
+            Testar Conexão com Supabase
+          </button>
+
           {/* SIGN UP LINK */}
           <p className="text-center mt-8 text-slate-600 text-[10px] font-black uppercase tracking-widest">
             Ainda não é cliente? <Link href="/#planos" className="text-red-600 hover:text-white transition-colors ml-1">Assinar Agora</Link>

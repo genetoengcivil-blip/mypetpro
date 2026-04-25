@@ -7,7 +7,7 @@ import {
   Plus, ChevronRight, TrendingUp, ChevronLeft, Bell,
   Weight, Edit3, Trash2, Camera, Clock, Star, Zap, Dumbbell, Utensils, 
   X, Shield, Thermometer, Heart, Target, LogOut, Printer, Lock, CheckCircle, FileText, Trophy,
-  Wallet, FolderOpen, Scissors, Download, DollarSign, Sparkles
+  Wallet, FolderOpen, Scissors, Download, DollarSign, Sparkles, PieChart
 } from 'lucide-react';
 
 // --- INICIALIZAÇÃO DO SUPABASE ---
@@ -67,6 +67,23 @@ export default function MyPetProEnterprise() {
 
   const formatCurrency = (value: number) => {
      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
+
+  // --- FUNÇÃO DE LOGOUT (FUNCIONAL) ---
+  const handleLogout = async () => {
+    if (confirm("Deseja realmente encerrar a sessão?")) {
+      try {
+        // Faz logout do Supabase
+        await supabase.auth.signOut();
+        // Remove o perfil do tutor do localStorage
+        localStorage.removeItem('nexus_tutor_profile');
+        // Redireciona para a página de login/recarregar
+        window.location.href = '/';
+      } catch (error) {
+        console.error('Erro ao fazer logout:', error);
+        alert('Erro ao encerrar sessão. Tente novamente.');
+      }
+    }
   };
 
   const petActivities = activities?.filter(a => a.pet_id === selectedPet?.id) || [];
@@ -140,7 +157,7 @@ export default function MyPetProEnterprise() {
      return `${calendar.year}-${String(calendar.month + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
   }, [calendar, selectedDay]);
 
-  // CÁLCULOS DO DASHBOARD FINANCEIRO (V40)
+  // CÁLCULOS DO DASHBOARD FINANCEIRO (COM GRÁFICO)
   const monthlyFinances = useMemo(() => {
      if(!selectedPet) return [];
      return finances.filter(f => {
@@ -152,14 +169,43 @@ export default function MyPetProEnterprise() {
 
   const totalMensal = monthlyFinances.reduce((acc, curr) => acc + Number(curr.amount), 0);
   
-  const expensesByCategory = useMemo(() => {
-     const grouped = monthlyFinances.reduce((acc: any, curr) => {
-         acc[curr.type] = (acc[curr.type] || 0) + Number(curr.amount);
-         return acc;
-     }, {});
-     return Object.entries(grouped).sort((a: any, b: any) => b[1] - a[1]).slice(0, 4); // Top 4
-  }, [monthlyFinances]);
+  // Função para calcular o percentual e o ângulo do gráfico
+  const getChartData = useMemo(() => {
+    const expensesByCategory = monthlyFinances.reduce((acc: any, curr) => {
+      acc[curr.type] = (acc[curr.type] || 0) + Number(curr.amount);
+      return acc;
+    }, {});
+    
+    const sortedCategories = Object.entries(expensesByCategory)
+      .sort((a: any, b: any) => b[1] - a[1])
+      .slice(0, 4);
+    
+    // Calcular percentuais para o gráfico donut
+    let currentAngle = 0;
+    const segments = sortedCategories.map(([cat, amount]: any) => {
+      const percent = totalMensal > 0 ? (amount / totalMensal) * 100 : 0;
+      const angle = percent * 3.6;
+      const start = currentAngle;
+      const end = start + angle;
+      currentAngle = end;
+      return { cat, amount, percent, start, end };
+    });
+    
+    return segments;
+  }, [monthlyFinances, totalMensal]);
 
+  // Função para desenhar o arco SVG
+  const getArcPath = (startAngle: number, endAngle: number, radius: number = 16) => {
+    const center = 18;
+    const startRad = (startAngle * Math.PI) / 180;
+    const endRad = (endAngle * Math.PI) / 180;
+    const x1 = center + radius * Math.cos(startRad);
+    const y1 = center + radius * Math.sin(startRad);
+    const x2 = center + radius * Math.cos(endRad);
+    const y2 = center + radius * Math.sin(endRad);
+    const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+    return `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+  };
 
   if (!mounted) return null;
 
@@ -380,7 +426,14 @@ export default function MyPetProEnterprise() {
               </div>
             ))}
           </div>
-          <div className="p-6 border-t border-white/5"><button className="w-full flex items-center justify-center gap-3 bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white py-4 rounded-2xl transition-all font-black uppercase text-[10px] tracking-widest"><LogOut className="h-4 w-4" /> {isSidebarOpen && "Sair do Sistema"}</button></div>
+          <div className="p-6 border-t border-white/5">
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-3 bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white py-4 rounded-2xl transition-all font-black uppercase text-[10px] tracking-widest"
+            >
+              <LogOut className="h-4 w-4" /> {isSidebarOpen && "Sair do Sistema"}
+            </button>
+          </div>
         </aside>
 
         {/* MAIN CONTENT */}
@@ -392,7 +445,7 @@ export default function MyPetProEnterprise() {
 
              {selectedPet && (
                <div className="flex gap-6 items-center">
-                  
+                 
                   {/* SININHO DE ALERTAS */}
                   <div className="relative">
                      <button onClick={() => setIsAlertOpen(!isAlertOpen)} className="relative p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all">
@@ -429,7 +482,7 @@ export default function MyPetProEnterprise() {
                <div className="flex flex-col items-center justify-center h-96 border-4 border-dashed border-white/5 rounded-[4rem]"><Dog className="h-16 w-16 text-slate-500 mb-4" /><h3 className="text-3xl font-black uppercase italic text-white tracking-tighter">Nenhum Pet Selecionado</h3><p className="text-[10px] text-slate-500 uppercase tracking-widest mt-2 mb-8">Cadastre um animal ou selecione um existente no topo.</p><button onClick={() => {setActiveTab('pets'); openModal('pet');}} className="bg-orange-600 px-10 py-5 rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-xl">Cadastrar Pet</button></div>
             ) : (
               <>
-                {/* === ABA DASHBOARD === */}
+                {/* === ABA DASHBOARD (COM GRÁFICO FINANCEIRO) === */}
                 {activeTab === 'dashboard' && selectedPet && (
                   <div className="space-y-8 animate-in fade-in duration-700">
                      <section className="flex flex-col xl:flex-row gap-12 items-center bg-white/5 p-12 rounded-[4rem] border border-white/5 shadow-2xl relative">
@@ -479,7 +532,7 @@ export default function MyPetProEnterprise() {
                            </div>
                         </div>
 
-                        {/* NOVO BLOCO: RESUMO FINANCEIRO MENSAL V40 */}
+                        {/* NOVO BLOCO: RESUMO FINANCEIRO MENSAL COM GRÁFICO DONUT ESTILIZADO */}
                         <div className="flex flex-col justify-between bg-gradient-to-br from-emerald-600/10 to-transparent p-10 rounded-[3rem] border border-emerald-600/20 shadow-2xl">
                            <div>
                               <div className="flex justify-between items-start mb-6">
@@ -489,20 +542,57 @@ export default function MyPetProEnterprise() {
                               <h3 className="text-3xl font-black uppercase italic text-white tracking-tighter mb-1">Despesas Mensais</h3>
                               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-8">Competência: {calendar.monthName} / {calendar.year}</p>
                               
-                              <h2 className="text-5xl font-black italic text-emerald-500 mb-8">{formatCurrency(totalMensal)}</h2>
+                              <div className="flex items-center gap-10 mb-8 flex-wrap">
+                                <h2 className="text-5xl font-black italic text-emerald-500">{formatCurrency(totalMensal)}</h2>
+                                {/* GRÁFICO DONUT ESTILIZADO */}
+                                {totalMensal > 0 && getChartData.length > 0 && (
+                                  <div className="relative h-28 w-28">
+                                    <svg viewBox="0 0 36 36" className="h-full w-full">
+                                      <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#10b98120" strokeWidth="3.5"></circle>
+                                      {getChartData.map((segment, idx) => {
+                                        const radius = 15.9155;
+                                        const startRad = (segment.start * Math.PI) / 180;
+                                        const endRad = (segment.end * Math.PI) / 180;
+                                        const x1 = 18 + radius * Math.cos(startRad);
+                                        const y1 = 18 + radius * Math.sin(startRad);
+                                        const x2 = 18 + radius * Math.cos(endRad);
+                                        const y2 = 18 + radius * Math.sin(endRad);
+                                        const largeArc = segment.end - segment.start > 180 ? 1 : 0;
+                                        const pathData = `M 18 18 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                                        const colors = ['#10b981', '#34d399', '#059669', '#6ee7b7', '#047857'];
+                                        return (
+                                          <path 
+                                            key={idx}
+                                            d={pathData}
+                                            fill={colors[idx % colors.length]}
+                                            stroke="#020617"
+                                            strokeWidth="0.5"
+                                            className="transition-all duration-700 ease-out hover:opacity-80"
+                                          />
+                                        );
+                                      })}
+                                      <circle cx="18" cy="18" r="10" fill="#0c1222" />
+                                    </svg>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <PieChart className="h-5 w-5 text-emerald-500" />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                            </div>
 
                            <div className="space-y-4">
-                              {expensesByCategory.length > 0 ? (
-                                 expensesByCategory.map(([cat, amount]: any, idx: number) => {
-                                    const percent = totalMensal > 0 ? (amount / totalMensal) * 100 : 0;
+                              {getChartData.length > 0 ? (
+                                 getChartData.map((segment, idx) => {
+                                    const colors = ['#10b981', '#34d399', '#059669', '#6ee7b7', '#047857'];
                                     return (
                                        <div key={idx}>
                                           <div className="flex justify-between text-[10px] text-white font-black uppercase mb-2 tracking-widest">
-                                             <span>{cat}</span><span>{formatCurrency(amount)}</span>
+                                             <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: colors[idx % colors.length] }}></span>{segment.cat}</span>
+                                             <span>{formatCurrency(segment.amount)}</span>
                                           </div>
                                           <div className="w-full h-2 bg-black/30 rounded-full overflow-hidden">
-                                             <div className="h-full bg-emerald-500 rounded-full" style={{width: `${percent}%`}}></div>
+                                             <div className="h-full rounded-full transition-all duration-1000" style={{width: `${segment.percent}%`, backgroundColor: colors[idx % colors.length]}}></div>
                                           </div>
                                        </div>
                                     )
@@ -675,20 +765,20 @@ export default function MyPetProEnterprise() {
                                 appointments.filter(a => a.pet_id === selectedPet.id && a.date === selectedFullDateStr).map(a => {
                                   const isCompleted = a.status === 'Concluído';
                                   return (
-                                     <div key={a.id} className={`p-8 rounded-[3rem] border flex items-center justify-between group transition-all shadow-xl ${isCompleted ? 'bg-white/5 border-white/5 opacity-50' : 'bg-[#0c1222] border-white/10 hover:border-orange-600'}`}>
-                                        <div className="flex items-center gap-8">
-                                           <button onClick={() => handleCompleteAppointment(a)} disabled={isCompleted} title="Concluir e Arquivar" className={`h-16 w-16 border-4 rounded-2xl flex items-center justify-center transition-colors shrink-0 ${isCompleted ? 'bg-green-600 border-green-500 text-white cursor-not-allowed' : 'bg-[#020617] border-white/10 text-slate-600 hover:border-green-500 hover:text-green-500'}`}><CheckCircle className="h-8 w-8" /></button>
-                                           <div>
-                                              <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCompleted ? 'text-green-500' : 'text-orange-500'}`}>{isCompleted ? '✅ Concluído' : 'Pendente'} • {a.time}</p>
-                                              <h4 className={`text-2xl font-black uppercase italic mb-1 leading-none ${isCompleted ? 'text-slate-400 line-through' : 'text-white'}`}>{a.title}</h4>
-                                              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{a.clinic}</p>
-                                           </div>
-                                        </div>
-                                        <div className="flex gap-2">
-                                           <button onClick={() => openModal('agenda', a)} className="p-4 rounded-2xl bg-white/5 hover:bg-orange-600 text-slate-500 hover:text-white transition-all"><Edit3 className="h-6 w-6" /></button>
-                                           <button onClick={() => deleteItem('appointments', setAppointments, appointments, a.id)} className="p-4 rounded-2xl bg-white/5 hover:bg-red-600 text-slate-500 hover:text-white transition-all"><Trash2 className="h-6 w-6" /></button>
-                                        </div>
-                                     </div>
+                                      <div key={a.id} className={`p-8 rounded-[3rem] border flex items-center justify-between group transition-all shadow-xl ${isCompleted ? 'bg-white/5 border-white/5 opacity-50' : 'bg-[#0c1222] border-white/10 hover:border-orange-600'}`}>
+                                         <div className="flex items-center gap-8">
+                                            <button onClick={() => handleCompleteAppointment(a)} disabled={isCompleted} title="Concluir e Arquivar" className={`h-16 w-16 border-4 rounded-2xl flex items-center justify-center transition-colors shrink-0 ${isCompleted ? 'bg-green-600 border-green-500 text-white cursor-not-allowed' : 'bg-[#020617] border-white/10 text-slate-600 hover:border-green-500 hover:text-green-500'}`}><CheckCircle className="h-8 w-8" /></button>
+                                            <div>
+                                               <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCompleted ? 'text-green-500' : 'text-orange-500'}`}>{isCompleted ? '✅ Concluído' : 'Pendente'} • {a.time}</p>
+                                               <h4 className={`text-2xl font-black uppercase italic mb-1 leading-none ${isCompleted ? 'text-slate-400 line-through' : 'text-white'}`}>{a.title}</h4>
+                                               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{a.clinic}</p>
+                                            </div>
+                                         </div>
+                                         <div className="flex gap-2">
+                                            <button onClick={() => openModal('agenda', a)} className="p-4 rounded-2xl bg-white/5 hover:bg-orange-600 text-slate-500 hover:text-white transition-all"><Edit3 className="h-6 w-6" /></button>
+                                            <button onClick={() => deleteItem('appointments', setAppointments, appointments, a.id)} className="p-4 rounded-2xl bg-white/5 hover:bg-red-600 text-slate-500 hover:text-white transition-all"><Trash2 className="h-6 w-6" /></button>
+                                         </div>
+                                      </div>
                                   )
                                 })
                               ) : ( <div className="h-32 flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-[3rem] text-slate-600"><p className="font-black uppercase text-xs tracking-widest">Nenhum evento neste dia.</p></div> )}
@@ -704,22 +794,22 @@ export default function MyPetProEnterprise() {
                               {appointments?.filter(a => a.pet_id === selectedPet.id).sort((a, b) => b.date.localeCompare(a.date)).map(a => {
                                 const isCompleted = a.status === 'Concluído';
                                 return (
-                                   <div key={a.id} className={`p-6 rounded-[2rem] border flex items-center justify-between transition-all ${isCompleted ? 'bg-white/5 border-white/5 opacity-50' : 'bg-[#0c1222] border-white/10'}`}>
-                                      <div className="flex items-center gap-6">
-                                         <div className="text-center w-24">
-                                            <p className={`text-xs font-black uppercase tracking-widest mb-1 ${isCompleted ? 'text-slate-500' : 'text-orange-500'}`}>{a.date.split('-').reverse().join('/')}</p>
-                                            <p className="text-[10px] font-bold text-slate-500">{a.time}</p>
-                                         </div>
-                                         <div>
-                                            <h4 className={`text-xl font-black uppercase italic mb-1 leading-none ${isCompleted ? 'text-slate-400 line-through' : 'text-white'}`}>{a.title}</h4>
-                                            <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${isCompleted ? 'bg-green-600/20 text-green-500' : 'bg-orange-600/20 text-orange-500'}`}>{isCompleted ? 'Concluído' : 'Pendente'}</span>
-                                         </div>
-                                      </div>
-                                      <div className="flex gap-2">
-                                         <button onClick={() => openModal('agenda', a)} className="p-3 rounded-xl bg-white/5 hover:bg-orange-600 text-slate-500 hover:text-white transition-all"><Edit3 className="h-4 w-4" /></button>
-                                         <button onClick={() => deleteItem('appointments', setAppointments, appointments, a.id)} className="p-3 rounded-xl bg-white/5 hover:bg-red-600 text-slate-500 hover:text-white transition-all"><Trash2 className="h-4 w-4" /></button>
-                                      </div>
-                                   </div>
+                                    <div key={a.id} className={`p-6 rounded-[2rem] border flex items-center justify-between transition-all ${isCompleted ? 'bg-white/5 border-white/5 opacity-50' : 'bg-[#0c1222] border-white/10'}`}>
+                                       <div className="flex items-center gap-6">
+                                          <div className="text-center w-24">
+                                             <p className={`text-xs font-black uppercase tracking-widest mb-1 ${isCompleted ? 'text-slate-500' : 'text-orange-500'}`}>{a.date.split('-').reverse().join('/')}</p>
+                                             <p className="text-[10px] font-bold text-slate-500">{a.time}</p>
+                                          </div>
+                                          <div>
+                                             <h4 className={`text-xl font-black uppercase italic mb-1 leading-none ${isCompleted ? 'text-slate-400 line-through' : 'text-white'}`}>{a.title}</h4>
+                                             <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${isCompleted ? 'bg-green-600/20 text-green-500' : 'bg-orange-600/20 text-orange-500'}`}>{isCompleted ? 'Concluído' : 'Pendente'}</span>
+                                          </div>
+                                       </div>
+                                       <div className="flex gap-2">
+                                          <button onClick={() => openModal('agenda', a)} className="p-3 rounded-xl bg-white/5 hover:bg-orange-600 text-slate-500 hover:text-white transition-all"><Edit3 className="h-4 w-4" /></button>
+                                          <button onClick={() => deleteItem('appointments', setAppointments, appointments, a.id)} className="p-3 rounded-xl bg-white/5 hover:bg-red-600 text-slate-500 hover:text-white transition-all"><Trash2 className="h-4 w-4" /></button>
+                                       </div>
+                                    </div>
                                 )
                               })}
                            </div>
@@ -743,11 +833,11 @@ export default function MyPetProEnterprise() {
                                     <td className="p-10 text-right flex justify-end gap-2">
                                        <button onClick={() => openModal('vacina', v)} className="p-3 bg-white/5 rounded-xl hover:bg-orange-600 transition-colors"><Edit3 className="h-5 w-5"/></button>
                                        <button onClick={() => deleteItem('vaccines', setVaccines, vaccines, v.id)} className="p-3 bg-white/5 rounded-xl hover:bg-red-600 transition-colors"><Trash2 className="h-5 w-5"/></button>
-                                    </td>
-                                 </tr>
+                                     </td>
+                                  </tr>
                               ))}
                            </tbody>
-                        </table>
+                         </table>
                      </div>
                   </div>
                 )}
@@ -893,7 +983,7 @@ export default function MyPetProEnterprise() {
            <div className="bg-[#0c1222] border border-white/10 w-full max-w-2xl rounded-[4rem] p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
               <button onClick={() => setActiveModal(null)} className="absolute top-8 right-8 text-slate-500 hover:text-white z-20 bg-white/5 p-3 rounded-full transition-colors"><X className="h-6 w-6" /></button>
               
-              {/* MODAIS V39 - FINANCEIRO, DOCS E HIGIENE */}
+              {/* MODAIS FINANCEIRO, DOCS E HIGIENE */}
               {activeModal === 'financeiro' && (
                 <form onSubmit={handleSaveFinance}>
                    <h3 className="text-4xl font-black uppercase italic text-emerald-500 mb-8">{editingItem ? "Editar Despesa" : "Nova Despesa"}</h3>
@@ -1032,14 +1122,12 @@ export default function MyPetProEnterprise() {
         </div>
       )}
 
-      {/* =====================================================================
-          MÓDULO DE IMPRESSÃO PDF
-      ===================================================================== */}
+      {/* MÓDULO DE IMPRESSÃO PDF */}
       {selectedPet && (
         <div className="hidden print:block w-full bg-white text-black font-sans p-8">
            <div className="border-b-4 border-black pb-6 mb-8 flex justify-between items-end">
-              <div><h1 className="text-5xl font-black uppercase italic mb-1">Dossiê Médico: {selectedPet.name}</h1><p className="text-gray-500 text-sm uppercase tracking-widest font-bold">Relatório Oficial MyPetPro Enterprise</p></div>
-              <div className="text-right"><p className="text-sm font-bold uppercase text-gray-800">Tutor: <span className="font-black text-black">{tutor.name}</span></p><p className="text-sm font-bold uppercase text-gray-800">Contato: <span className="font-black text-black">{tutor.phone}</span></p><p className="text-sm font-bold uppercase text-gray-800 mt-2">Emissão: <span className="font-black text-black">{new Date().toLocaleDateString('pt-BR')}</span></p></div>
+             <div><h1 className="text-5xl font-black uppercase italic mb-1">Dossiê Médico: {selectedPet.name}</h1><p className="text-gray-500 text-sm uppercase tracking-widest font-bold">Relatório Oficial MyPetPro Enterprise</p></div>
+             <div className="text-right"><p className="text-sm font-bold uppercase text-gray-800">Tutor: <span className="font-black text-black">{tutor.name}</span></p><p className="text-sm font-bold uppercase text-gray-800">Contato: <span className="font-black text-black">{tutor.phone}</span></p><p className="text-sm font-bold uppercase text-gray-800 mt-2">Emissão: <span className="font-black text-black">{new Date().toLocaleDateString('pt-BR')}</span></p></div>
            </div>
            <div className="flex items-start gap-10 mb-12 bg-gray-50 p-8 rounded-3xl border border-gray-200">
               <img src={selectedPet.image || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=400'} alt={selectedPet.name} className="w-56 h-56 object-cover rounded-2xl border-4 border-white shadow-md" />
@@ -1080,6 +1168,10 @@ export default function MyPetProEnterprise() {
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #ea580c; }
         select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
+        @keyframes dash {
+          from { stroke-dashoffset: 100; }
+          to { stroke-dashoffset: 0; }
+        }
         @media print {
            @page { margin: 10mm; }
            body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }

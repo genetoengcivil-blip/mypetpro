@@ -308,15 +308,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Botão Criar Conta Demo */}
-          <button 
-            onClick={handleCreateDemoAccount}
-            disabled={isLoading}
-            className="w-full mt-4 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-500 hover:text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
-          >
-            Criar Conta Demo Grátis
-          </button>
-
+          
           {/* SIGN UP LINK */}
           <p className="text-center mt-8 text-slate-600 text-[10px] font-black uppercase tracking-widest">
             Ainda não é cliente? <Link href="/#planos" className="text-red-600 hover:text-white transition-colors ml-1">Assinar Agora</Link>

@@ -12,6 +12,13 @@ import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
+// === CORREÇÃO CRÍTICA AQUI ===
+// Inicializa o Supabase APENAS UMA VEZ fora do componente.
+// Isso impede o erro de "Multiple GoTrueClient instances" e evita que o login trave.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -21,24 +28,11 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const router = useRouter();
 
-  // Inicializar Supabase APENAS no cliente
-  const getSupabase = () => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    
-    if (!url || !key) {
-      throw new Error('Variáveis do Supabase não configuradas');
-    }
-    
-    return createClient(url, key);
-  };
-
   useEffect(() => {
     setMounted(true);
     
     const checkSession = async () => {
       try {
-        const supabase = getSupabase();
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           router.push('/dashboard');
@@ -57,8 +51,6 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const supabase = getSupabase();
-      
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password,
@@ -73,9 +65,6 @@ export default function LoginPage() {
       }
 
       if (data?.session) {
-        console.log("SUCESSO: Supabase autorizou o login!", data.user);
-        
-        // CORREÇÃO: Salvando os dados exatamente no formato que o Dashboard MyPetPro espera
         const userData = {
           name: data.user.email?.split('@')[0] || 'Tutor',
           email: data.user.email,
@@ -84,10 +73,9 @@ export default function LoginPage() {
           photo: ''
         };
         
-        // CORREÇÃO: Usando a chave correta para o Dashboard reconhecer
         localStorage.setItem('mypetpro_tutor_profile', JSON.stringify(userData));
         
-        console.log("Redirecionando para o painel...");
+        // O botão vai continuar girando apenas o tempo necessário para o Next.js carregar a próxima página
         router.push('/dashboard');
       }
     } catch (err: any) {

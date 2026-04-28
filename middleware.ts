@@ -8,6 +8,7 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  // 1. Inicializa o cliente Supabase para o Middleware
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -31,26 +32,35 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Recupera a sessão real do Supabase
+  // 2. Verifica a sessão do usuário de forma segura
+  // IMPORTANTE: Use getUser() em vez de getSession() para segurança real no servidor
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Lógica de proteção de rotas
-  const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard')
-  const isAuthRoute = request.nextUrl.pathname === '/login'
+  const url = request.nextUrl.clone()
+  const isProtectedRoute = url.pathname.startsWith('/dashboard')
+  const isAuthPage = url.pathname === '/login' || url.pathname === '/'
 
-  // 1. Se não houver usuário e tentar acessar dashboard -> Login
+  // 3. LOGICA DE REDIRECIONAMENTO:
+  
+  // Se não estiver logado e tentar entrar no Dashboard -> Redireciona para Login
   if (!user && isProtectedRoute) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
   }
 
-  // 2. Se já estiver logado e tentar acessar login -> Dashboard
-  if (user && isAuthRoute) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  // Se já estiver logado e tentar entrar na página de Login -> Redireciona para Dashboard
+  if (user && isAuthPage) {
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
   }
 
   return response
 }
 
+// 4. Configuração do Matcher
+// Garante que o middleware NÃO rode em arquivos estáticos (imagens, css, etc)
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }

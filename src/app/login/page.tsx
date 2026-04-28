@@ -12,20 +12,6 @@ import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
-// --- INICIALIZAÇÃO DO SUPABASE COM VERIFICAÇÃO ---
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-// Log para debug no console do navegador
-console.log('Supabase URL:', supabaseUrl ? 'OK' : 'MISSING');
-console.log('Supabase Key:', supabaseKey ? 'OK' : 'MISSING');
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error('ERRO: Variáveis de ambiente do Supabase não configuradas!');
-}
-
-const supabase = createClient(supabaseUrl || '', supabaseKey || '');
-
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -35,28 +21,30 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const router = useRouter();
 
+  // Inicializar Supabase APENAS no cliente
+  const getSupabase = () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!url || !key) {
+      throw new Error('Variáveis do Supabase não configuradas');
+    }
+    
+    return createClient(url, key);
+  };
+
   useEffect(() => {
     setMounted(true);
     
-    // Verificar se já existe uma sessão ativa
     const checkSession = async () => {
       try {
-        console.log('Verificando sessão existente...');
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Erro ao verificar sessão:', sessionError);
-          return;
-        }
-        
+        const supabase = getSupabase();
+        const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          console.log('Sessão encontrada, redirecionando...');
           router.push('/dashboard');
-        } else {
-          console.log('Nenhuma sessão ativa');
         }
       } catch (err) {
-        console.error('Erro inesperado ao verificar sessão:', err);
+        console.error('Erro ao verificar sessão:', err);
       }
     };
     
@@ -68,158 +56,59 @@ export default function LoginPage() {
     setIsLoading(true);
     setError('');
 
-    // Verificar se as variáveis estão configuradas
-    if (!supabaseUrl || !supabaseKey) {
-      setError('Erro de configuração: Supabase não configurado. Contate o suporte.');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      // Validação básica
-      if (!email || !password) {
-        setError('Preencha todos os campos');
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('Tentando login para:', email);
-
-      // Tentativa de login no Supabase
+      const supabase = getSupabase();
+      
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password,
       });
 
       if (signInError) {
-        console.error('Erro de login detalhado:', {
-          message: signInError.message,
-          status: signInError.status,
-          name: signInError.name
-        });
-        
-        // Mensagens amigáveis para erros comuns
-        if (signInError.message === 'Invalid login credentials') {
-          setError('Email ou senha incorretos');
-        } else if (signInError.message.includes('Email not confirmed')) {
-          setError('Por favor, confirme seu email antes de fazer login');
-        } else if (signInError.message.includes('Invalid email')) {
-          setError('Email inválido');
-        } else {
-          setError(`Erro: ${signInError.message}`);
-        }
+        setError(signInError.message === 'Invalid login credentials' 
+          ? 'Email ou senha incorretos' 
+          : signInError.message);
         setIsLoading(false);
         return;
       }
 
-      console.log('Login bem-sucedido!', data?.user?.id);
-
-      // Login bem-sucedido
-      if (data?.session && data?.user) {
-        const userId = data.user.id;
+      if (data?.session) {
+        console.log("SUCESSO: Supabase autorizou o login!", data.user);
         
-        try {
-          // Buscar ou criar perfil do tutor
-          console.log('Buscando perfil do usuário...');
-          
-          let { data: tutorData, error: tutorError } = await supabase
-            .from('tutores')
-            .select('*')
-            .eq('user_id', userId)
-            .maybeSingle();
-          
-          if (tutorError) {
-            console.error('Erro ao buscar tutor:', tutorError);
-          }
-          
-          if (!tutorData) {
-            console.log('Perfil não encontrado, criando novo...');
-            
-            // Criar perfil
-            const newTutor = {
-              user_id: userId,
-              name: data.user.email?.split('@')[0] || 'Usuário',
-              email: data.user.email,
-              phone: '',
-              plan: 'Enterprise Elite',
-              photo: ''
-            };
-            
-            const { data: inserted, error: insertError } = await supabase
-              .from('tutores')
-              .insert([newTutor])
-              .select()
-              .maybeSingle();
-            
-            if (insertError) {
-              console.error('Erro ao criar perfil:', insertError);
-              // Salvar no localStorage mesmo assim
-              localStorage.setItem('nexus_tutor_profile', JSON.stringify(newTutor));
-            } else if (inserted) {
-              console.log('Perfil criado com sucesso');
-              localStorage.setItem('nexus_tutor_profile', JSON.stringify(inserted));
-            }
-          } else {
-            console.log('Perfil encontrado');
-            localStorage.setItem('nexus_tutor_profile', JSON.stringify(tutorData));
-          }
-        } catch (profileError) {
-          console.error('Erro ao processar perfil:', profileError);
-        }
+        // CORREÇÃO: Salvando os dados exatamente no formato que o Dashboard MyPetPro espera
+        const userData = {
+          name: data.user.email?.split('@')[0] || 'Tutor',
+          email: data.user.email,
+          phone: '', 
+          plan: 'Enterprise Elite', 
+          photo: ''
+        };
         
-        console.log('Redirecionando para dashboard...');
+        // CORREÇÃO: Usando a chave correta para o Dashboard reconhecer
+        localStorage.setItem('mypetpro_tutor_profile', JSON.stringify(userData));
+        
+        console.log("Redirecionando para o painel...");
         router.push('/dashboard');
       }
-    } catch (err) {
-      console.error('Erro inesperado no login:', err);
-      setError('Erro de conexão. Verifique sua internet e tente novamente.');
-    } finally {
+    } catch (err: any) {
+      console.error('Erro crítico:', err);
+      setError('Erro ao conectar. Verifique sua internet.');
       setIsLoading(false);
     }
   };
 
-  // Função para testar conexão com Supabase
-  const testConnection = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.from('tutores').select('count');
-      if (error) {
-        console.error('Erro de conexão:', error);
-        alert(`Erro de conexão: ${error.message}`);
-      } else {
-        alert('Conexão com Supabase OK!');
-      }
-    } catch (err) {
-      console.error('Erro:', err);
-      alert('Erro ao conectar com Supabase');
-    }
-    setIsLoading(false);
-  };
+  if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-[#020617] font-sans selection:bg-red-500 selection:text-white flex items-center justify-center p-6 overflow-hidden">
       
-      {/* BACKGROUND CINEMATOGRÁFICO */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-10"></div>
-        {mounted && (
-          <video 
-            autoPlay 
-            loop 
-            muted 
-            playsInline 
-            className="w-full h-full object-cover grayscale opacity-30"
-          >
-            <source src="/hero-video.mp4" type="video/mp4" />
-          </video>
-        )}
       </div>
 
-      {/* CARD DE LOGIN */}
       <div className="relative z-20 w-full max-w-[500px]">
         <div className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3.5rem] p-10 md:p-16 shadow-2xl">
           
-          {/* LOGO */}
           <div className="flex justify-center mb-12">
             <img src="/logo.png" alt="MyPetPro" className="h-48 md:h-64 w-auto object-contain" />
           </div>
@@ -229,7 +118,6 @@ export default function LoginPage() {
             <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">Acesse sua conta</p>
           </div>
 
-          {/* Exibir erro se houver */}
           {error && (
             <div className="mb-6 p-4 bg-red-600/20 border border-red-600/50 rounded-2xl">
               <p className="text-red-500 text-xs font-black uppercase tracking-widest text-center">{error}</p>
@@ -237,7 +125,6 @@ export default function LoginPage() {
           )}
 
           <form className="space-y-6" onSubmit={handleLogin}>
-            {/* EMAIL */}
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-4">Email</label>
               <div className="relative group">
@@ -254,7 +141,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* SENHA */}
             <div className="space-y-2">
               <div className="flex justify-between items-center px-4">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Senha</label>
@@ -281,7 +167,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* BOTÃO ENTRAR */}
             <button 
               type="submit" 
               disabled={isLoading}
@@ -295,16 +180,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Botão Testar Conexão (apenas para debug) */}
-          <button 
-            onClick={testConnection}
-            type="button"
-            className="w-full mt-4 bg-yellow-600/20 hover:bg-yellow-600 text-yellow-500 hover:text-white py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors"
-          >
-            Testar Conexão com Supabase
-          </button>
-
-          {/* SIGN UP LINK */}
           <p className="text-center mt-8 text-slate-600 text-[10px] font-black uppercase tracking-widest">
             Ainda não é cliente? <Link href="/#planos" className="text-red-600 hover:text-white transition-colors ml-1">Assinar Agora</Link>
           </p>
@@ -312,7 +187,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* DECORAÇÃO FUNDO */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-red-600/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none"></div>
 

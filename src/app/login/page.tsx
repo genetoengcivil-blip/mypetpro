@@ -10,14 +10,18 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
-import { useRouter } from 'next/navigation';
 
-// === CORREÇÃO CRÍTICA AQUI ===
-// Inicializa o Supabase APENAS UMA VEZ fora do componente.
-// Isso impede o erro de "Multiple GoTrueClient instances" e evita que o login trave.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
+// === SOLUÇÃO 1: PADRÃO SINGLETON ===
+// Garante que o Supabase só seja instanciado UMA ÚNICA VEZ na memória.
+let supabaseInstance: any = null;
+const getSupabase = () => {
+  if (!supabaseInstance) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    supabaseInstance = createClient(url, key);
+  }
+  return supabaseInstance;
+};
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -26,16 +30,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
     
     const checkSession = async () => {
       try {
+        const supabase = getSupabase();
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          router.push('/dashboard');
+          // Usa window.location para forçar a renderização limpa
+          window.location.href = '/dashboard';
         }
       } catch (err) {
         console.error('Erro ao verificar sessão:', err);
@@ -43,7 +48,7 @@ export default function LoginPage() {
     };
     
     checkSession();
-  }, [router]);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +56,8 @@ export default function LoginPage() {
     setError('');
 
     try {
+      const supabase = getSupabase();
+      
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password,
@@ -75,8 +82,10 @@ export default function LoginPage() {
         
         localStorage.setItem('mypetpro_tutor_profile', JSON.stringify(userData));
         
-        // O botão vai continuar girando apenas o tempo necessário para o Next.js carregar a próxima página
-        router.push('/dashboard');
+        // === SOLUÇÃO 2: HARD REDIRECT ===
+        // Em vez do router.push, forçamos o navegador a abrir a página. 
+        // Se houver erro no código do Dashboard, ele será mostrado na tela e não ocultado.
+        window.location.href = '/dashboard';
       }
     } catch (err: any) {
       console.error('Erro crítico:', err);

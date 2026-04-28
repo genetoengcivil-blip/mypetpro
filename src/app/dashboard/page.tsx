@@ -69,7 +69,7 @@ export default function MyPetProEnterprise() {
      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
-  // --- FUNÇÃO DE LOGOUT (FUNCIONAL) ---
+  // --- FUNÇÃO DE LOGOUT ---
   const handleLogout = async () => {
     if (confirm("Deseja realmente encerrar a sessão?")) {
       try {
@@ -196,7 +196,7 @@ export default function MyPetProEnterprise() {
 
   if (!mounted) return null;
 
-  // Handles de Upload e Interações mantidos...
+  // Handles de Upload e Interações
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     const reader = new FileReader(); reader.readAsDataURL(file);
@@ -236,13 +236,33 @@ export default function MyPetProEnterprise() {
     };
   };
 
-  const handleUpdateTutor = (e: React.FormEvent<HTMLFormElement>) => { 
+  // --- ATUALIZAR PERFIL DO TUTOR (SUPABASE) ---
+  const handleUpdateTutor = async (e: React.FormEvent<HTMLFormElement>) => { 
      e.preventDefault(); 
      const fd = new FormData(e.currentTarget); 
-     const newTutor = { ...tutor, name: fd.get('name') as string, email: fd.get('email') as string, phone: fd.get('phone') as string };
-     setTutor(newTutor); 
-     localStorage.setItem('mypetpro_tutor_profile', JSON.stringify(newTutor));
-     alert("Configurações atualizadas e salvas!"); 
+     const name = fd.get('name') as string;
+     const email = fd.get('email') as string;
+     const phone = fd.get('phone') as string;
+
+     try {
+       // 1. Atualiza dados na sessão de autenticação do Supabase
+       const { error } = await supabase.auth.updateUser({
+         email: email,
+         data: { full_name: name, phone: phone }
+       });
+
+       if (error) throw error;
+
+       // 2. Atualiza os estados locais e cache
+       const newTutor = { ...tutor, name, email, phone };
+       setTutor(newTutor); 
+       localStorage.setItem('mypetpro_tutor_profile', JSON.stringify(newTutor));
+       alert("Configurações atualizadas e salvas no sistema!"); 
+
+     } catch (err: any) {
+       console.error("Erro ao atualizar tutor:", err);
+       alert("Erro ao atualizar perfil: " + err.message);
+     }
   };
 
   const openModal = (type: string, item: any = null) => { 
@@ -273,14 +293,7 @@ export default function MyPetProEnterprise() {
      else { alert("Aviso: Erro ao concluir. Verifique tabela no Supabase."); }
   };
   
-  const handleSavePet = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); const fd = new FormData(e.currentTarget);
-    const petData = { name: fd.get('name') as string, breed: fd.get('breed') as string, weight: fd.get('weight') as string + 'kg', birth_date: fd.get('birth_date') as string, image: imagePreview || editingItem?.image || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=400', status: editingItem?.status || 'Excelente', level: editingItem?.level || 1, xp: editingItem?.xp || 0, next_xp: 1000 };
-    if (editingItem) { const { data } = await supabase.from('pets').update(petData).eq('id', editingItem.id).select(); if (data) { setPets(pets.map(p => p.id === data[0].id ? data[0] : p)); if(selectedPet?.id === data[0].id) setSelectedPet(data[0]); } } 
-    else { const { data } = await supabase.from('pets').insert([petData]).select(); if (data) { setPets([data[0], ...pets]); setSelectedPet(data[0]); setActiveTab('dashboard'); } }
-    setActiveModal(null);
-  };
-
+  // --- SALVAR PET COM TENANT (USER_ID) ---
   const handleSavePet = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); 
     const fd = new FormData(e.currentTarget);
@@ -425,7 +438,53 @@ export default function MyPetProEnterprise() {
      setActiveModal(null);
   };
 
-  const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => { e.preventDefault(); if (passwordForm.new !== passwordForm.confirm) { alert("Senhas não coincidem!"); return; } alert("Senha atualizada!"); setPasswordForm({ current: '', new: '', confirm: '' }); };
+  // --- NOVA FUNÇÃO: SALVAR TIMELINE (EVOLUÇÃO) ---
+  const handleSaveTimeline = async (e: React.FormEvent<HTMLFormElement>) => {
+     e.preventDefault(); if(!selectedPet) return; const fd = new FormData(e.currentTarget);
+     const itemData = { 
+        pet_id: selectedPet.id, 
+        title: fd.get('title') as string, 
+        date: fd.get('date') as string, 
+        weight: fd.get('weight') ? fd.get('weight') + 'kg' : '', 
+        photo: imagePreview || editingItem?.photo || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=400' 
+     };
+     
+     if(editingItem) { 
+        const { data } = await supabase.from('timeline').update(itemData).eq('id', editingItem.id).select(); 
+        if(data) setTimeline(timeline.map(t => t.id === data[0].id ? data[0] : t).sort((a,b) => b.date.localeCompare(a.date))); 
+     } else { 
+        const { data } = await supabase.from('timeline').insert([itemData]).select(); 
+        if(data) setTimeline([...timeline, data[0]].sort((a,b) => b.date.localeCompare(a.date))); 
+     }
+     setActiveModal(null);
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => { 
+    e.preventDefault(); 
+    
+    if (passwordForm.new !== passwordForm.confirm) { 
+      alert("As senhas não coincidem!"); 
+      return; 
+    } 
+
+    if (passwordForm.new.length < 6) {
+      alert("A nova senha precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    const { data, error } = await supabase.auth.updateUser({
+      password: passwordForm.new
+    });
+
+    if (error) {
+      console.error("Erro ao atualizar senha:", error);
+      alert("Erro ao atualizar a senha: " + error.message);
+    } else {
+      alert("Senha atualizada com sucesso no banco de dados!"); 
+      setPasswordForm({ current: '', new: '', confirm: '' }); 
+    }
+  };
+
   const handlePrintReport = () => { window.print(); };
 
   // Helper para trocar a aba e já fechar o menu no celular
@@ -890,7 +949,6 @@ export default function MyPetProEnterprise() {
                   <div className="space-y-8 md:space-y-12 animate-in fade-in duration-700">
                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6"><h3 className="text-2xl md:text-3xl font-black uppercase italic text-white tracking-tighter">Cartão de Vacinas</h3><button onClick={() => openModal('vacina')} className="w-full md:w-auto justify-center bg-orange-600 px-6 py-4 md:px-8 md:py-4 rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105"><Plus className="h-4 w-4 inline mr-2"/>Nova Vacina</button></div>
                      
-                     {/* TABELA COM SCROLL HORIZONTAL MOBILE */}
                      <div className="bg-white/5 rounded-[2rem] md:rounded-[4rem] border border-white/5 overflow-x-auto shadow-2xl custom-scrollbar">
                         <table className="w-full text-left font-black italic min-w-[600px]">
                            <thead className="bg-white/5 border-b border-white/10 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500"><tr><th className="p-6 md:p-10 whitespace-nowrap">Imunizante</th><th className="p-6 md:p-10 text-center whitespace-nowrap">Status</th><th className="p-6 md:p-10 text-center whitespace-nowrap">Última Dose</th><th className="p-6 md:p-10 text-center whitespace-nowrap">Reforço (Agenda)</th><th className="p-6 md:p-10 text-right whitespace-nowrap">Ação</th></tr></thead>
@@ -1047,7 +1105,7 @@ export default function MyPetProEnterprise() {
                         <div className="bg-white/5 p-6 md:p-10 rounded-[2.5rem] md:rounded-[4rem] border border-white/5 shadow-2xl hover:border-orange-600/50 transition-colors">
                            <div className="flex items-center gap-4 md:gap-6 mb-6 md:mb-8 border-b border-white/10 pb-4 md:pb-6"><div className="h-12 w-12 md:h-16 md:w-16 bg-orange-600/20 rounded-2xl flex items-center justify-center text-orange-500 shrink-0"><Lock className="h-6 w-6 md:h-8 md:w-8" /></div><h3 className="text-xl md:text-3xl font-black italic uppercase text-white">Segurança</h3></div>
                            <form onSubmit={handlePasswordChange} className="space-y-4 md:space-y-6">
-                              <div className="space-y-2"><label className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Senha Atual</label><input type="password" value={passwordForm.current} onChange={e => setPasswordForm({...passwordForm, current: e.target.value})} required className="w-full bg-[#020617] border border-white/10 rounded-xl md:rounded-2xl py-3 px-4 md:py-4 md:px-6 outline-none text-white font-bold text-sm md:text-base focus:border-orange-500 transition-colors" placeholder="••••••••" /></div>
+                              <div className="space-y-2"><label className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Senha Atual</label><input type="password" value={passwordForm.current} onChange={e => setPasswordForm({...passwordForm, current: e.target.value})} className="w-full bg-[#020617] border border-white/10 rounded-xl md:rounded-2xl py-3 px-4 md:py-4 md:px-6 outline-none text-white font-bold text-sm md:text-base focus:border-orange-500 transition-colors" placeholder="••••••••" /></div>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div className="space-y-2"><label className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Nova Senha</label><input type="password" value={passwordForm.new} onChange={e => setPasswordForm({...passwordForm, new: e.target.value})} required className="w-full bg-[#020617] border border-white/10 rounded-xl md:rounded-2xl py-3 px-4 md:py-4 md:px-6 outline-none text-white font-bold text-sm md:text-base focus:border-orange-500 transition-colors" placeholder="Nova senha" /></div><div className="space-y-2"><label className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Confirmar Senha</label><input type="password" value={passwordForm.confirm} onChange={e => setPasswordForm({...passwordForm, confirm: e.target.value})} required className="w-full bg-[#020617] border border-white/10 rounded-xl md:rounded-2xl py-3 px-4 md:py-4 md:px-6 outline-none text-white font-bold text-sm md:text-base focus:border-orange-500 transition-colors" placeholder="Repita a senha" /></div></div>
                               <button type="submit" className="w-full bg-orange-600 py-4 md:py-5 rounded-xl md:rounded-2xl font-black uppercase text-[10px] md:text-[12px] tracking-widest text-white shadow-xl hover:bg-white hover:text-orange-600 transition-all mt-6">Alterar Senha</button>
                            </form>
@@ -1208,7 +1266,7 @@ export default function MyPetProEnterprise() {
                 </form> 
               )}
 
-              {/* MODAL TIMELINE */}
+              {/* MODAL TIMELINE (ADICIONADO) */}
               {activeModal === 'timeline' && ( 
                 <form onSubmit={handleSaveTimeline} className="mt-4 md:mt-0"> 
                   <h3 className="text-2xl md:text-4xl font-black uppercase italic text-white mb-6 md:mb-8 pr-8">{editingItem ? "Editar Momento" : "Registrar Momento"}</h3> 

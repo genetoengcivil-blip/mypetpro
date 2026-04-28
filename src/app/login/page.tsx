@@ -10,9 +10,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
-import { useRouter } from 'next/navigation';
 
-// Criação ÚNICA do Supabase para evitar o erro de instâncias múltiplas
+// === SOLUÇÃO 1: CONEXÃO ÚNICA ===
+// Garante que o Supabase seja criado apenas uma vez, evitando travamentos e alertas no console
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -24,12 +24,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
-    // Removemos a verificação automática de sessão (checkSession) daqui 
-    // para matar o "Loop Infinito" que fazia a tela piscar.
+    // Sem verificação de sessão automática para evitar o Loop de Redirecionamento
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -60,11 +58,11 @@ export default function LoginPage() {
           photo: ''
         };
         
-        // Salva os dados para o Dashboard reconhecer
+        // Salva os dados na exata chave que o Dashboard MyPetPro espera
         localStorage.setItem('mypetpro_tutor_profile', JSON.stringify(userData));
         
-        // Redirecionamento limpo
-        router.push('/dashboard');
+        // === SOLUÇÃO 2: REDIRECIONAMENTO DIRETO ===
+        window.location.href = '/dashboard';
       }
     } catch (err: any) {
       console.error('Erro crítico:', err);
@@ -78,8 +76,21 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#020617] font-sans selection:bg-red-500 selection:text-white flex items-center justify-center p-6 overflow-hidden">
       
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-10"></div>
+      {/* === SOLUÇÃO 3: VÍDEO DE FUNDO CORRIGIDO === */}
+      <div className="absolute inset-0 z-0 overflow-hidden bg-[#020617]">
+        <video 
+          autoPlay 
+          loop 
+          muted 
+          playsInline 
+          className="absolute inset-0 w-full h-full object-cover opacity-60"
+        >
+          {/* NOME DO ARQUIVO ATUALIZADO AQUI */}
+          <source src="/hero-video.mp4" type="video/mp4" />
+        </video>
+        
+        {/* Camada escura suavizada para o vídeo aparecer com estilo */}
+        <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px] z-10"></div>
       </div>
 
       <div className="relative z-20 w-full max-w-[500px]">
@@ -163,8 +174,9 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-red-600/10 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none"></div>
+      {/* Efeitos de iluminação originais mantidos */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-red-600/10 rounded-full blur-[120px] pointer-events-none z-10"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none z-10"></div>
 
     </div>
   );

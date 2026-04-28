@@ -281,12 +281,58 @@ export default function MyPetProEnterprise() {
     setActiveModal(null);
   };
 
-  const handleSaveTimeline = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); if(!selectedPet) return; const fd = new FormData(e.currentTarget);
-    const itemData = { pet_id: selectedPet.id, title: fd.get('title') as string, date: fd.get('date') as string, weight: fd.get('weight') as string + 'kg', photo: imagePreview || editingItem?.photo || 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?q=80&w=400' };
-    if(editingItem) { const { data } = await supabase.from('timeline').update(itemData).eq('id', editingItem.id).select(); if(data) setTimeline(timeline.map(t => t.id === data[0].id ? data[0] : t).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())); } 
-    else { const { data } = await supabase.from('timeline').insert([itemData]).select(); if(data) setTimeline([data[0], ...timeline].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())); }
-    setActiveModal(null);
+  const handleSavePet = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); 
+    const fd = new FormData(e.currentTarget);
+    
+    // 1. Puxa a sessão do usuário ativo direto do Supabase (A chave do Multi-Tenancy)
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      alert("Sessão expirada. Por favor, faça login novamente.");
+      return;
+    }
+
+    // 2. Monta os dados incluindo o user_id obrigatório
+    const petData = { 
+      user_id: user.id, // VINCULANDO O PET AO INQUILINO (TENANT)
+      name: fd.get('name') as string, 
+      breed: fd.get('breed') as string, 
+      weight: fd.get('weight') as string + 'kg', 
+      birth_date: fd.get('birth_date') as string, 
+      image: imagePreview || editingItem?.image || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=400', 
+      status: editingItem?.status || 'Excelente', 
+      level: editingItem?.level || 1, 
+      xp: editingItem?.xp || 0, 
+      next_xp: 1000 
+    };
+
+    if (editingItem) { 
+      // MODO EDIÇÃO
+      const { data, error } = await supabase.from('pets').update(petData).eq('id', editingItem.id).select(); 
+      
+      if (error) {
+         console.error("Erro do Supabase:", error);
+         alert("Erro ao atualizar Pet: " + error.message);
+      } else if (data) { 
+         setPets(pets.map(p => p.id === data[0].id ? data[0] : p)); 
+         if(selectedPet?.id === data[0].id) setSelectedPet(data[0]); 
+         setActiveModal(null);
+      } 
+    } else { 
+      // MODO NOVO CADASTRO
+      const { data, error } = await supabase.from('pets').insert([petData]).select(); 
+      
+      if (error) {
+         console.error("Erro do Supabase:", error);
+         alert("Erro ao cadastrar Pet: " + error.message);
+      } else if (data) { 
+         setPets([data[0], ...pets]); 
+         setSelectedPet(data[0]); 
+         setActiveTab('dashboard'); 
+         setActiveModal(null);
+      } 
+    }
   };
 
   const handleSaveAppointment = async (e: React.FormEvent<HTMLFormElement>) => {

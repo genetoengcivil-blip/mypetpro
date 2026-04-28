@@ -42,19 +42,19 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-transparent to-transparent z-10 opacity-90"></div>
           <div className="absolute inset-0 bg-gradient-to-l from-slate-950 via-transparent to-transparent z-10 opacity-80"></div>
           
-          {mounted && (
-            <video 
-              key="hero-video-player"
-              autoPlay 
-              loop 
-              muted 
-              playsInline 
-              poster="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=1200"
-              className="w-full h-full object-cover object-top scale-105"
-            >
-              <source src="/hero-video.mp4" type="video/mp4" />
-            </video>
-          )}
+        
+          <video 
+            key="hero-video-player"
+            autoPlay 
+            loop 
+            muted 
+            playsInline 
+            poster="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=1200"
+            className="w-full h-full object-cover object-top scale-105"
+          >
+            <source src="/hero-video.mp4" type="video/mp4" />
+          </video>
+          
         </div>
 
         <div className="relative z-20 max-w-[1600px] mx-auto px-6 md:px-16 w-full h-full flex flex-col justify-center">

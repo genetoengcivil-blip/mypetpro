@@ -368,75 +368,101 @@ export default function MyPetProEnterprise() {
   };
 
   const handleSaveVaccine = async (e: React.FormEvent<HTMLFormElement>) => {
-   e.preventDefault(); 
-   if(!selectedPet) {
-      alert("Selecione um pet primeiro!");
-      return;
-   }
-   
-   const fd = new FormData(e.currentTarget);
-   const itemData = { 
-      pet_id: selectedPet.id, 
-      name: fd.get('name') as string, 
-      date: fd.get('date') as string, 
-      next_date: fd.get('next_date') as string || null, 
-      status: fd.get('status') as string 
-   };
-   
-   console.log("Salvando vacina:", itemData); // Debug
-   
-   try {
-      if(editingItem) { 
-         const { data, error } = await supabase
-         .from('vaccines')
-         .update(itemData)
-         .eq('id', editingItem.id)
-         .select(); 
+      e.preventDefault(); 
+      
+      if(!selectedPet) {
+         alert("Selecione um pet primeiro!");
+         return;
+      }
+      
+      const fd = new FormData(e.currentTarget);
+      
+      // DEBUG: Ver o que está sendo enviado
+      const rawDate = fd.get('date') as string;
+      const rawNextDate = fd.get('next_date') as string;
+      
+      console.log("📅 Data aplicação:", rawDate);
+      console.log("📅 Data reforço:", rawNextDate);
+      
+      const itemData = { 
+         pet_id: selectedPet.id, 
+         name: fd.get('name') as string, 
+         date: rawDate || null, 
+         next_date: rawNextDate || null, 
+         status: fd.get('status') as string 
+      };
+      
+      console.log("💾 Salvando:", itemData);
+
+      try {
+         let result;
          
-         if (error) throw error;
-         if (data && data.length > 0) {
-         setVaccines(vaccines.map(v => v.id === data[0].id ? data[0] : v)); 
-         alert("Vacina atualizada!");
-         }
-      } else { 
-         const { data, error } = await supabase
-         .from('vaccines')
-         .insert([itemData])
-         .select(); 
-         
-         if (error) throw error;
-         if (data && data.length > 0) {
-         setVaccines([data[0], ...vaccines]); 
-         alert("Vacina cadastrada!");
-         
-         // Se tem próxima dose, cria lembrete na agenda
-         if(itemData.next_date) {
-            const aptData = { 
-               pet_id: selectedPet.id, 
-               title: `Reforço: ${itemData.name}`, 
-               date: itemData.next_date, 
-               time: '08:00', 
-               clinic: 'Lembrete de Vacina', 
-               vet: '', 
-               status: 'Pendente' 
-            };
-            const { data: aptRes, error: aptError } = await supabase
-               .from('appointments')
-               .insert([aptData])
-               .select();
+         if(editingItem) { 
+            // ATUALIZAR
+            result = await supabase
+            .from('vaccines')
+            .update(itemData)
+            .eq('id', editingItem.id)
+            .select(); 
+            
+            if (result.error) throw result.error;
+            
+            if (result.data && result.data.length > 0) {
+            // Atualiza o estado local
+            setVaccines(prev => 
+               prev.map(v => v.id === result.data[0].id ? result.data[0] : v)
+            );
+            console.log("✅ Vacina atualizada:", result.data[0]);
+            }
+         } else { 
+            // INSERIR NOVA
+            result = await supabase
+            .from('vaccines')
+            .insert([itemData])
+            .select(); 
+            
+            if (result.error) throw result.error;
+            
+            if (result.data && result.data.length > 0) {
+            // Adiciona ao estado local
+            setVaccines(prev => [result.data[0], ...prev]);
+            console.log("✅ Nova vacina:", result.data[0]);
+            
+            // Criar lembrete na agenda (se tiver próxima dose)
+            if (itemData.next_date) {
+               const aptData = { 
+                  pet_id: selectedPet.id, 
+                  title: `💉 Reforço: ${itemData.name}`, 
+                  date: itemData.next_date, 
+                  time: '08:00', 
+                  clinic: 'Lembrete de Vacina', 
+                  vet: '', 
+                  status: 'Pendente' 
+               };
                
-            if (aptRes && !aptError) {
-               setAppointments(prev => [...prev, aptRes[0]].sort((a,b) => a.date.localeCompare(b.date)));
+               const { data: aptRes, error: aptError } = await supabase
+                  .from('appointments')
+                  .insert([aptData])
+                  .select();
+                  
+               if (aptRes && !aptError) {
+                  setAppointments(prev => 
+                  [...prev, aptRes[0]].sort((a, b) => a.date.localeCompare(b.date))
+                  );
+                  console.log("📋 Lembrete criado na agenda:", aptRes[0]);
+               }
+            }
             }
          }
-         }
+         
+         setActiveModal(null);
+         alert("Vacina salva com sucesso! ✅");
+         
+      } catch (err: any) {
+         console.error("❌ Erro ao salvar vacina:", err);
+         alert("Erro ao salvar: " + err.message);
       }
-      setActiveModal(null);
-   } catch (err: any) {
-      console.error("Erro ao salvar vacina:", err);
-      alert("Erro: " + err.message);
-   }
-   };
+      };
 
   const handleSaveMedical = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); if(!selectedPet) return; const fd = new FormData(e.currentTarget);

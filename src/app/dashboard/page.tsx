@@ -31,8 +31,12 @@ export default function MyPetProEnterprise() {
 
   const [actForm, setActForm] = useState({ title: 'Caminhada Leve', duration: '20 min', distance: 'Leve', xp: 30 });
 
-  const [tutor, setTutor] = useState({ name: 'Geraldo Neto', email: 'geraldo@nexus.io', phone: '+55 83 9999-9999', plan: 'Enterprise Elite', photo: '' });
+  const [tutor, setTutor] = useState({ name: 'João da Silva', email: 'geraldo@nexus.io', phone: '+55 83 9999-9999', plan: 'Enterprise Elite', photo: '' });
   const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' });
+
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   // ESTADOS DOS DADOS
   const [pets, setPets] = useState<any[]>([]);

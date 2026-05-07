@@ -3,11 +3,17 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Heart, Shield, Activity, ArrowRight, Check, Star, 
-  Smartphone, Bell, Cloud, HelpCircle, Camera, CheckCircle2, Zap
+  Smartphone, Bell, Cloud, HelpCircle, Camera, CheckCircle2, Zap,
+  Lock, FileText, X
 } from 'lucide-react';
 
 export default function LandingPage() {
   const [mounted, setMounted] = useState(false);
+  
+  // NOVOS ESTADOS PARA OS MODAIS
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -42,19 +48,17 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-transparent to-transparent z-10 opacity-90"></div>
           <div className="absolute inset-0 bg-gradient-to-l from-slate-950 via-transparent to-transparent z-10 opacity-80"></div>
           
-        
           <video 
             key="hero-video-player"
             autoPlay 
             loop 
             muted 
             playsInline 
-            poster="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=1200"
+            poster="auto"
             className="w-full h-full object-cover object-top scale-105"
           >
             <source src="/hero-video.mp4" type="video/mp4" />
           </video>
-          
         </div>
 
         <div className="relative z-20 max-w-[1600px] mx-auto px-6 md:px-16 w-full h-full flex flex-col justify-center">
@@ -229,9 +233,9 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto flex flex-col items-center">
           <img src="/logo.png" alt="MyPetPro" className="h-28 md:h-48 w-auto mb-16 md:mb-28 object-contain" />
           <div className="flex flex-wrap justify-center gap-8 md:gap-12 text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 mb-16">
-             <a href="/termos" className="hover:text-red-600 transition-colors">Termos</a>
-             <a href="/privacidade" className="hover:text-red-600 transition-colors">Privacidade</a>
-             <a href="/seguranca" className="hover:text-red-600 transition-colors">Segurança</a>
+             <button onClick={() => setShowTermsModal(true)} className="hover:text-red-600 transition-colors">Termos</button>
+             <button onClick={() => setShowPrivacyModal(true)} className="hover:text-red-600 transition-colors">Privacidade</button>
+             <button onClick={() => setShowSecurityModal(true)} className="hover:text-red-600 transition-colors">Segurança</button>
              <a href="https://instagram.com/mypet.pro" target="_blank" className="hover:text-red-600 transition-colors inline-flex items-center gap-2">
                 <Camera className="h-4 w-4" /> Instagram
              </a>
@@ -240,9 +244,157 @@ export default function LandingPage() {
         </div>
       </footer>
 
+      {/* ============ MODAIS ============ */}
+      
+      {/* MODAL TERMOS DE USO */}
+      {showTermsModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6 bg-[#020617]/95 backdrop-blur-md">
+          <div className="bg-[#0c1222] border border-white/10 w-full max-w-3xl rounded-[2.5rem] md:rounded-[4rem] p-6 md:p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
+            <button onClick={() => setShowTermsModal(false)} className="absolute top-4 right-4 md:top-8 md:right-8 text-slate-500 hover:text-white z-20 bg-white/5 p-2 md:p-3 rounded-full transition-colors">
+              <X className="h-5 w-5 md:h-6 md:w-6" />
+            </button>
+            
+            <div className="flex items-center gap-4 mb-8">
+              <div className="h-16 w-16 bg-red-600 rounded-2xl flex items-center justify-center shrink-0">
+                <FileText className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-3xl md:text-4xl font-black uppercase italic text-white">Termos de Uso</h2>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">MyPetPro Enterprise</p>
+              </div>
+            </div>
+
+            <div className="space-y-6 text-slate-300">
+              <section className="bg-white/5 p-6 rounded-2xl border border-white/5">
+                <h3 className="text-lg font-black text-red-500 mb-3">1. Aceitação dos Termos</h3>
+                <p className="text-sm leading-relaxed">Ao usar o MyPetPro, você concorda com estes termos. O uso indevido da plataforma pode resultar em suspensão da conta. O serviço é destinado a maiores de 18 anos ou menores com supervisão de responsáveis.</p>
+              </section>
+
+              <section className="bg-white/5 p-6 rounded-2xl border border-white/5">
+                <h3 className="text-lg font-black text-red-500 mb-3">2. Responsabilidades do Usuário</h3>
+                <p className="text-sm leading-relaxed">Você é responsável por manter suas credenciais seguras e por todas as informações inseridas na plataforma. Dados veterinários devem ser validados por profissionais. O MyPetPro não substitui acompanhamento veterinário.</p>
+              </section>
+
+              <section className="bg-white/5 p-6 rounded-2xl border border-white/5">
+                <h3 className="text-lg font-black text-red-500 mb-3">3. Assinatura e Pagamento</h3>
+                <p className="text-sm leading-relaxed">As assinaturas são processadas via Nexano. O cancelamento pode ser feito a qualquer momento, sem multas. Reembolsos seguem a política de 7 dias conforme Código de Defesa do Consumidor.</p>
+              </section>
+
+              <section className="bg-white/5 p-6 rounded-2xl border border-white/5">
+                <h3 className="text-lg font-black text-red-500 mb-3">4. Modificações dos Termos</h3>
+                <p className="text-sm leading-relaxed">Reservamos o direito de alterar estes termos a qualquer momento. Usuários ativos serão notificados sobre mudanças significativas via email cadastrado.</p>
+              </section>
+            </div>
+
+            <button onClick={() => setShowTermsModal(false)} className="w-full bg-red-600 hover:bg-red-500 py-4 md:py-5 rounded-2xl font-black uppercase text-sm tracking-widest text-white transition-all mt-8">
+              Entendi
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PRIVACIDADE */}
+      {showPrivacyModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6 bg-[#020617]/95 backdrop-blur-md">
+          <div className="bg-[#0c1222] border border-white/10 w-full max-w-3xl rounded-[2.5rem] md:rounded-[4rem] p-6 md:p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
+            <button onClick={() => setShowPrivacyModal(false)} className="absolute top-4 right-4 md:top-8 md:right-8 text-slate-500 hover:text-white z-20 bg-white/5 p-2 md:p-3 rounded-full transition-colors">
+              <X className="h-5 w-5 md:h-6 md:w-6" />
+            </button>
+            
+            <div className="flex items-center gap-4 mb-8">
+              <div className="h-16 w-16 bg-blue-600 rounded-2xl flex items-center justify-center shrink-0">
+                <Shield className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-3xl md:text-4xl font-black uppercase italic text-white">Política de Privacidade</h2>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">MyPetPro Enterprise • LGPD</p>
+              </div>
+            </div>
+
+            <div className="space-y-6 text-slate-300">
+              <section className="bg-white/5 p-6 rounded-2xl border border-white/5">
+                <h3 className="text-lg font-black text-white mb-3">1. Coleta de Dados</h3>
+                <p className="text-sm leading-relaxed">Coletamos apenas dados essenciais: nome, email, telefone do tutor e informações dos pets (nome, raça, peso, idade). Nenhum dado sensível é coletado sem consentimento explícito. Dados de pagamento são processados pelo Nexano.</p>
+              </section>
+
+              <section className="bg-white/5 p-6 rounded-2xl border border-white/5">
+                <h3 className="text-lg font-black text-white mb-3">2. Finalidade do Uso</h3>
+                <p className="text-sm leading-relaxed">Seus dados são usados exclusivamente para gestão pet, lembretes de vacinas, agendamentos e melhorias da plataforma. Não vendemos, alugamos ou compartilhamos dados pessoais com terceiros para fins comerciais.</p>
+              </section>
+
+              <section className="bg-white/5 p-6 rounded-2xl border border-white/5">
+                <h3 className="text-lg font-black text-white mb-3">3. Seus Direitos (LGPD)</h3>
+                <p className="text-sm leading-relaxed">Você pode acessar, corrigir ou solicitar exclusão dos seus dados a qualquer momento. Também pode solicitar a portabilidade dos dados para outro serviço. Contate: privacidade@mypetpro.com</p>
+              </section>
+
+              <section className="bg-white/5 p-6 rounded-2xl border border-white/5">
+                <h3 className="text-lg font-black text-white mb-3">4. Armazenamento Seguro</h3>
+                <p className="text-sm leading-relaxed">Dados armazenados no Supabase com criptografia AES-256 e TLS 1.3 em trânsito. Backups diários automáticos com retenção de 7 dias em datacenters certificados SOC 2.</p>
+              </section>
+            </div>
+
+            <button onClick={() => setShowPrivacyModal(false)} className="w-full bg-blue-600 hover:bg-blue-500 py-4 md:py-5 rounded-2xl font-black uppercase text-sm tracking-widest text-white transition-all mt-8">
+              Entendi
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL SEGURANÇA */}
+      {showSecurityModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6 bg-[#020617]/95 backdrop-blur-md">
+          <div className="bg-[#0c1222] border border-white/10 w-full max-w-3xl rounded-[2.5rem] md:rounded-[4rem] p-6 md:p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
+            <button onClick={() => setShowSecurityModal(false)} className="absolute top-4 right-4 md:top-8 md:right-8 text-slate-500 hover:text-white z-20 bg-white/5 p-2 md:p-3 rounded-full transition-colors">
+              <X className="h-5 w-5 md:h-6 md:w-6" />
+            </button>
+            
+            <div className="flex items-center gap-4 mb-8">
+              <div className="h-16 w-16 bg-green-600 rounded-2xl flex items-center justify-center shrink-0">
+                <Lock className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-3xl md:text-4xl font-black uppercase italic text-white">Política de Segurança</h2>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">MyPetPro Enterprise</p>
+              </div>
+            </div>
+
+            <div className="space-y-6 text-slate-300">
+              <section className="bg-white/5 p-6 rounded-2xl border border-white/5">
+                <h3 className="text-lg font-black text-green-500 mb-3">🔐 Criptografia Avançada</h3>
+                <p className="text-sm leading-relaxed">TLS 1.3 para dados em trânsito e AES-256 para dados armazenados. Todas as conexões são HTTPS obrigatórias. Senhas são hash com bcrypt com salt único por usuário.</p>
+              </section>
+
+              <section className="bg-white/5 p-6 rounded-2xl border border-white/5">
+                <h3 className="text-lg font-black text-green-500 mb-3">👤 Autenticação Robusta</h3>
+                <p className="text-sm leading-relaxed">Tokens JWT com expiração automática de 1 hora. Refresh tokens rotativos. Row Level Security no Supabase garante que cada usuário acesse apenas seus próprios dados.</p>
+              </section>
+
+              <section className="bg-white/5 p-6 rounded-2xl border border-white/5">
+                <h3 className="text-lg font-black text-green-500 mb-3">🛡️ Infraestrutura</h3>
+                <p className="text-sm leading-relaxed">Hospedagem na Vercel com proteção DDoS automática. Banco de dados Supabase com backups diários e recuperação point-in-time. Monitoramento 24/7.</p>
+              </section>
+
+              <section className="bg-white/5 p-6 rounded-2xl border border-white/5">
+                <h3 className="text-lg font-black text-green-500 mb-3">✅ Conformidade</h3>
+                <p className="text-sm leading-relaxed">Em conformidade com LGPD (Lei Geral de Proteção de Dados). Dados armazenados em datacenters nos EUA com certificação SOC 2 Type II. Relatórios de transparência disponíveis sob solicitação.</p>
+              </section>
+            </div>
+
+            <button onClick={() => setShowSecurityModal(false)} className="w-full bg-green-600 hover:bg-green-500 py-4 md:py-5 rounded-2xl font-black uppercase text-sm tracking-widest text-white transition-all mt-8">
+              Entendi
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* CSS: INFINITE LOOPS */}
       <style jsx global>{`
         html { scroll-behavior: smooth; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #020617; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #ea580c; }
 
         @keyframes marquee {
           0% { transform: translateX(0); }

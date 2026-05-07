@@ -242,32 +242,39 @@ export default function MyPetProEnterprise() {
 
   // --- ATUALIZAR PERFIL DO TUTOR (SUPABASE) ---
   const handleUpdateTutor = async (e: React.FormEvent<HTMLFormElement>) => { 
-     e.preventDefault(); 
-     const fd = new FormData(e.currentTarget); 
-     const name = fd.get('name') as string;
-     const email = fd.get('email') as string;
-     const phone = fd.get('phone') as string;
+      e.preventDefault(); 
+      const fd = new FormData(e.currentTarget); 
+      const name = fd.get('name') as string;
+      const email = fd.get('email') as string;
+      const phone = fd.get('phone') as string;
 
-     try {
-       // 1. Atualiza dados na sessão de autenticação do Supabase
-       const { error } = await supabase.auth.updateUser({
-         email: email,
+      try {
+      // Não tenta alterar o email se for o mesmo
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+         alert("Sessão expirada. Faça login novamente.");
+         return;
+      }
+
+      // Atualiza apenas metadados (nome e telefone)
+      const { error } = await supabase.auth.updateUser({
          data: { full_name: name, phone: phone }
-       });
+      });
 
-       if (error) throw error;
+      if (error) throw error;
 
-       // 2. Atualiza os estados locais e cache
-       const newTutor = { ...tutor, name, email, phone };
-       setTutor(newTutor); 
-       localStorage.setItem('mypetpro_tutor_profile', JSON.stringify(newTutor));
-       alert("Configurações atualizadas e salvas no sistema!"); 
+      // Atualiza os estados locais e cache
+      const newTutor = { ...tutor, name, email, phone };
+      setTutor(newTutor); 
+      localStorage.setItem('mypetpro_tutor_profile', JSON.stringify(newTutor));
+      alert("Configurações atualizadas com sucesso!"); 
 
-     } catch (err: any) {
-       console.error("Erro ao atualizar tutor:", err);
-       alert("Erro ao atualizar perfil: " + err.message);
-     }
-  };
+      } catch (err: any) {
+      console.error("Erro ao atualizar tutor:", err);
+      alert("Erro ao atualizar perfil: " + err.message);
+      }
+   };
 
   const openModal = (type: string, item: any = null) => { 
      setEditingItem(item); 
@@ -361,25 +368,75 @@ export default function MyPetProEnterprise() {
   };
 
   const handleSaveVaccine = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); if(!selectedPet) return; const fd = new FormData(e.currentTarget);
-    const itemData = { pet_id: selectedPet.id, name: fd.get('name') as string, date: fd.get('date') as string, next_date: fd.get('next_date') as string, status: fd.get('status') as string };
-    
-    if(editingItem) { 
-       const { data } = await supabase.from('vaccines').update(itemData).eq('id', editingItem.id).select(); 
-       if(data) setVaccines(vaccines.map(v => v.id === data[0].id ? data[0] : v)); 
-    } else { 
-       const { data } = await supabase.from('vaccines').insert([itemData]).select(); 
-       if(data) {
-          setVaccines([data[0], ...vaccines]); 
-          if(itemData.next_date) {
-             const aptData = { pet_id: selectedPet.id, title: `Reforço da Vacina: ${itemData.name}`, date: itemData.next_date, time: '08:00', clinic: 'Lembrete de Imunização', vet: '', status: 'Pendente' };
-             const { data: aptRes, error } = await supabase.from('appointments').insert([aptData]).select();
-             if(aptRes && !error) setAppointments(prev => [...prev, aptRes[0]].sort((a,b) => a.date.localeCompare(b.date)));
-          }
-       }
-    }
-    setActiveModal(null);
-  };
+   e.preventDefault(); 
+   if(!selectedPet) {
+      alert("Selecione um pet primeiro!");
+      return;
+   }
+   
+   const fd = new FormData(e.currentTarget);
+   const itemData = { 
+      pet_id: selectedPet.id, 
+      name: fd.get('name') as string, 
+      date: fd.get('date') as string, 
+      next_date: fd.get('next_date') as string || null, 
+      status: fd.get('status') as string 
+   };
+   
+   console.log("Salvando vacina:", itemData); // Debug
+   
+   try {
+      if(editingItem) { 
+         const { data, error } = await supabase
+         .from('vaccines')
+         .update(itemData)
+         .eq('id', editingItem.id)
+         .select(); 
+         
+         if (error) throw error;
+         if (data && data.length > 0) {
+         setVaccines(vaccines.map(v => v.id === data[0].id ? data[0] : v)); 
+         alert("Vacina atualizada!");
+         }
+      } else { 
+         const { data, error } = await supabase
+         .from('vaccines')
+         .insert([itemData])
+         .select(); 
+         
+         if (error) throw error;
+         if (data && data.length > 0) {
+         setVaccines([data[0], ...vaccines]); 
+         alert("Vacina cadastrada!");
+         
+         // Se tem próxima dose, cria lembrete na agenda
+         if(itemData.next_date) {
+            const aptData = { 
+               pet_id: selectedPet.id, 
+               title: `Reforço: ${itemData.name}`, 
+               date: itemData.next_date, 
+               time: '08:00', 
+               clinic: 'Lembrete de Vacina', 
+               vet: '', 
+               status: 'Pendente' 
+            };
+            const { data: aptRes, error: aptError } = await supabase
+               .from('appointments')
+               .insert([aptData])
+               .select();
+               
+            if (aptRes && !aptError) {
+               setAppointments(prev => [...prev, aptRes[0]].sort((a,b) => a.date.localeCompare(b.date)));
+            }
+         }
+         }
+      }
+      setActiveModal(null);
+   } catch (err: any) {
+      console.error("Erro ao salvar vacina:", err);
+      alert("Erro: " + err.message);
+   }
+   };
 
   const handleSaveMedical = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); if(!selectedPet) return; const fd = new FormData(e.currentTarget);

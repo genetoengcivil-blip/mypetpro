@@ -182,9 +182,9 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-3 gap-10 md:gap-12 max-w-6xl mx-auto items-stretch">
             {/* Semestral - DESTAQUE */}
             <div className="bg-white p-10 md:p-14 rounded-[3rem] md:rounded-[4rem] border-4 border-red-600 flex flex-col justify-between relative transform lg:scale-110 shadow-[0_0_50px_rgba(220,38,38,0.3)] text-slate-950 order-1 lg:order-2">
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-red-600 text-white px-8 md:px-12 py-3 md:py-4 rounded-full font-black text-[9px] md:text-xs uppercase tracking-[0.3em] shadow-2xl whitespace-nowrap">Best Value Member ⭐</div>
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-red-600 text-white px-8 md:px-12 py-3 md:py-4 rounded-full font-black text-[9px] md:text-xs uppercase tracking-[0.3em] shadow-2xl whitespace-nowrap">Valor Semestral ⭐</div>
               <div className="text-left">
-                <h3 className="text-[10px] font-black uppercase text-red-600 mb-6 tracking-[0.4em] pt-4 italic">Premium Membership</h3>
+                <h3 className="text-[10px] font-black uppercase text-red-600 mb-6 tracking-[0.4em] pt-4 italic">Assinatura Semestral</h3>
                 <div className="text-6xl md:text-8xl font-black mb-8 md:mb-12 italic tracking-tighter leading-none text-slate-900">R$ 219<span className="text-2xl text-slate-300 font-bold">,90</span></div>
                 <ul className="space-y-4 md:space-y-6 mb-10 md:mb-16 font-bold text-slate-800 text-base md:text-xl text-left">
                   <li className="flex gap-4 items-center"><Check className="text-red-600 w-5 h-5 md:w-7 md:h-7 shrink-0" /> Tudo do Mensal</li>
@@ -198,7 +198,7 @@ export default function LandingPage() {
             {/* Mensal */}
             <div className="bg-slate-900/40 p-8 md:p-12 rounded-[3rem] md:rounded-[4rem] border border-slate-800 flex flex-col justify-between hover:border-red-950 transition-all order-2 lg:order-1">
               <div className="text-left">
-                <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-[0.4em]">Starter</h3>
+                <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-[0.4em]">Assinatura Mensal</h3>
                 <div className="text-5xl md:text-6xl font-black mb-8 md:mb-12 italic text-white leading-none">R$ 39<span className="text-xl text-slate-600 font-bold">,90/mês</span></div>
                 <ul className="space-y-4 md:space-y-6 mb-10 md:mb-16 font-bold text-slate-400 text-left">
                   <li className="flex gap-4 items-center"><Check className="text-red-600 w-6 h-6 shrink-0" /> Cadastro ilimitado</li>
@@ -211,7 +211,7 @@ export default function LandingPage() {
             {/* Anual */}
             <div className="bg-slate-900/40 p-8 md:p-12 rounded-[3rem] md:rounded-[4rem] border border-slate-800 flex flex-col justify-between hover:border-red-950 transition-all order-3">
               <div className="text-left">
-                <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-[0.4em]">Elite Annual</h3>
+                <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-[0.4em]">Assinatura Anual</h3>
                 <div className="text-5xl md:text-6xl font-black mb-8 md:mb-12 italic text-white leading-none">R$ 399<span className="text-xl text-slate-600 font-bold">,90/ano</span></div>
                 <ul className="space-y-4 md:space-y-6 mb-10 md:mb-16 font-bold text-slate-400 text-left">
                   <li className="flex gap-4 items-center"><Check className="text-red-600 w-6 h-6 shrink-0" /> 2 meses TOTAL Grátis</li>
@@ -232,11 +232,11 @@ export default function LandingPage() {
              <a href="/termos" className="hover:text-red-600 transition-colors">Termos</a>
              <a href="/privacidade" className="hover:text-red-600 transition-colors">Privacidade</a>
              <a href="/seguranca" className="hover:text-red-600 transition-colors">Segurança</a>
-             <a href="https://instagram.com/mypetpro" target="_blank" className="hover:text-red-600 transition-colors inline-flex items-center gap-2">
+             <a href="https://instagram.com/mypet.pro" target="_blank" className="hover:text-red-600 transition-colors inline-flex items-center gap-2">
                 <Camera className="h-4 w-4" /> Instagram
              </a>
           </div>
-          <p className="text-slate-700 font-black text-[9px] md:text-[10px] tracking-[0.6em]">© 2026 MYPETPRO WORLDWIDE. ALL RIGHTS RESERVED.</p>
+          <p className="text-slate-700 font-black text-[9px] md:text-[10px] tracking-[0.6em]">© 2026 MYPETPRO SOFTWARE. TODOS OS DIREITOS RESERVADOS.</p>
         </div>
       </footer>
 
